@@ -1,0 +1,164 @@
+menu "CoreMQTT Agent Task"
+    config MQTT_BROKER_ENDPOINT
+        string "Endpoint of the MQTT broker to connect to"
+
+    config MQTT_BROKER_PORT
+        int "Port of the MQTT broker use"
+        default 8883
+        help
+            In general, port 8883 is for secured MQTT connections.
+            Port 443 requires use of the ALPN TLS extension with the ALPN protocol name.
+            When using port 8883, ALPN is not required.
+
+    config MQTT_CLIENT_IDENTIFIER
+        string "MQTT client identifier"
+        default "espressif"
+        help
+            The MQTT client identifier to use when connecting to the broker.
+
+    choice MQTT_AUTH_METHOD
+        prompt "Choose authentication method"
+        default MQTT_AUTH_PASSWORD
+        help
+            The authentication method to use when connecting to the broker.
+
+        config MQTT_AUTH_PASSWORD
+        bool "Password"
+        help
+            Use a password to authenticate with the broker.
+
+        config MQTT_AUTH_CLIENT_CERT
+        bool "Client certificate"
+        help
+            Use a client certificate to authenticate with the broker.
+
+    endchoice
+
+    config MQTT_CLIENT_USERNAME
+        string "MQTT client username"
+        default "test"
+        depends on MQTT_AUTH_PASSWORD
+        help
+            The username to use when connecting to the broker.
+
+    config MQTT_CLIENT_PASSWORD
+        string "MQTT client password"
+        default "test"
+        depends on MQTT_AUTH_PASSWORD
+        help
+            The password to use when connecting to the broker.
+
+    choice MQTT_CHOOSE_PKI_ACCESS_METHOD
+        prompt "Choose PKI credentials access method"
+        default MQTT_USE_PLAIN_FLASH_STORAGE
+        depends on MQTT_AUTH_CLIENT_CERT
+        help
+            ESP devices support multiple ways to secure store the PKI credentials.
+            Currently Secure Element (ATECC608A) and DS peripheral
+            (using ESP Secure Cert Manager) are supported.
+            The default behaviour is to access the PKI credentials which are embedded in the binary.
+            Consult the ESP-TLS documentation in ESP-IDF Programming guide for more details.
+
+        config MQTT_USE_SECURE_ELEMENT
+        bool "Use secure element (ATECC608A)"
+        depends on (IDF_TARGET_ESP32 || IDF_TARGET_ESP32C2) && ESP_TLS_USING_MBEDTLS
+        select ESP_TLS_USE_SECURE_ELEMENT
+        help
+            Enable the use of secure element for the example.
+            The esp-cryptoauthlib component is required for enabling
+            this option.
+
+        config MQTT_USE_ESP_SECURE_CERT_MGR
+        bool "Use ESP Secure Certificate Manager"
+        help
+            Enable the use of ESP Secure Certificate Manager APIs for the example.
+            Please refer to ESP Secure Certificate Manager documentation for more details.
+
+        config MQTT_USE_PLAIN_FLASH_STORAGE
+        bool "Use flash storage (default)"
+        help
+            This option expects the Private key and Device certificate to be embedded in the binary.
+            This is the default behaviour.
+    endchoice
+
+    config HARDWARE_PLATFORM_NAME
+        string "The hardware platform"
+        default "ESP32"
+        help
+            The name of the hardware platform the application is running on.
+            This is used for AWS IoT metrics strings.
+
+    config MQTT_USE_AWS_IOT_CORE_BROKER
+        bool "Use AWS IoT Core broker"
+        default n
+        help
+            Use the AWS IoT Core broker instead of a custom broker.
+            This enables sending of metrics to AWS IoT Core.
+
+    config MQTT_ALPN_PROTOCOL_NAME
+        string "ALPN protocol name"
+        default "mqtt"
+        help
+            The ALPN protocol name to use when connecting to the broker.
+
+    config CONFIG_MQTT_MAX_SUBSCRIPTIONS
+        int "Maximum number of subscriptions"
+        default 10
+        help
+            Maximum number of subscriptions maintained by the subscription manager
+            simultaneously in a list.
+
+    menu "MQTT Agent"
+        config MQTT_AGENT_NETWORK_BUFFER_SIZE
+            int "Network buffer size"
+            default 5000
+            help
+                Dimensions the buffer used to serialize and deserialize MQTT packets.
+                Specified in bytes.  Must be large enough to hold the maximum anticipated MQTT payload.
+
+        config MQTT_CONNECTION_RETRY_MAX_ATTEMPTS
+            int "Maximum number of reconnect attempts"
+            default 5
+            help
+                The maximum number of times the MQTT agent will attempt to reconnect to the broker.
+                After this number of attempts, the agent will stop attempting to reconnect.
+
+        config MQTT_AGENT_COMMAND_QUEUE_LENGTH
+            int "MQTT agent command queue length"
+            default 25
+
+
+        config MQTT_CONNECTION_RETRY_MAX_BACKOFF_DELAY_MS
+            int "Maximum backoff delay between reconnect attempts (ms)"
+            default 5000
+            help
+                The maximum backoff delay between reconnect attempts.
+                The backoff delay is doubled after each failed reconnect attempt.
+                The backoff delay is capped at this value.
+                Specified in milliseconds.
+
+        config MQTT_CONNECTION_RETRY_BACKOFF_BASE_MS
+            int "Base backoff delay between reconnect attempts (ms)"
+            default 500
+            help
+                The base backoff delay between reconnect attempts.
+                The backoff delay is doubled after each failed reconnect attempt.
+                Specified in milliseconds.
+
+        config MQTT_KEEP_ALIVE_INTERVAL_SECONDS
+            int "MQTT keep alive interval (seconds)"
+            default 60
+            help
+                The MQTT keep alive interval.
+                Specified in seconds.
+
+        config MQTT_CONNACK_RECV_TIMEOUT_MS
+            int "MQTT CONNACK receive timeout (ms)"
+            default 1000
+            help
+                Timeout for receiving CONNACK after sending an MQTT CONNECT packet.
+                Specified in milliseconds.
+
+    endmenu
+
+endmenu
