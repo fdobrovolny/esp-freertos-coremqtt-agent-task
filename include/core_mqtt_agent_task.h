@@ -264,6 +264,13 @@ extern const char client_key_end[] asm("_binary_client_key_end");
 
 /* ------------------------------------- */
 
-void connectToMQTTAndStartAgent(void *pvParameters);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+void connectToMQTTAndStartAgent(void *pvParameters);
+    
+#ifdef __cplusplus
+}
+#endif
 #endif //CORE_MQTT_AGENT_TASK_H

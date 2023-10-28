@@ -77,6 +77,11 @@ typedef struct subscriptionElement {
     const char *pcSubscriptionFilterString;
 } SubscriptionElement_t;
 
+/* ---------------------------------------------------------------------------*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Add a subscription to the subscription list.
  *
@@ -125,4 +130,7 @@ void removeSubscription(SubscriptionElement_t *pxSubscriptionList,
 bool handleIncomingPublishes(SubscriptionElement_t *pxSubscriptionList,
                              MQTTPublishInfo_t *pxPublishInfo);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* CORE_MQTT_AGENT_SUBS_MANAGER_H */
