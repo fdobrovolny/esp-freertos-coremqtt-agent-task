@@ -108,6 +108,12 @@ menu "CoreMQTT Agent Task"
             Maximum number of subscriptions maintained by the subscription manager
             simultaneously in a list.
 
+    config MQTT_USE_MBDED_TLS_ROOT_CA
+        bool "Use mbedTLS root CA"
+        default n
+        help
+            Use the mbedTLS root CA instead of the root CA embeded in the binary by default.
+
     menu "MQTT Agent"
         config MQTT_AGENT_NETWORK_BUFFER_SIZE
             int "Network buffer size"

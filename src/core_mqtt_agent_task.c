@@ -82,8 +82,14 @@
 #include "esp_secure_cert_read.h"
 #endif
 
+#ifdef CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA
+#include "mbedtls/certs.h"
+#endif
+
+#if !defined(CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA) && !defined(MBEDTLS_PEM_PARSE_C)
 extern const char root_cert_auth_start[]   asm("_binary_root_cert_auth_crt_start");
 extern const char root_cert_auth_end[]   asm("_binary_root_cert_auth_crt_end");
+#endif
 
 /*-----------------------------------------------------------*/
 
@@ -281,8 +287,13 @@ static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) 
     struct timespec tp;
 
     /* Initialize credentials for establishing TLS session. */
+#if !defined(CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA) && !defined(MBEDTLS_PEM_PARSE_C)
     pNetworkContext->pcServerRootCA = root_cert_auth_start;
     pNetworkContext->pcServerRootCASize = root_cert_auth_end - root_cert_auth_start;
+#else
+    pNetworkContext->pcServerRootCA = mbedtls_test_cas_pem;
+    pNetworkContext->pcServerRootCASize = mbedtls_test_cas_pem_len;
+#endif
 
 #ifdef CONFIG_MQTT_USE_SECURE_ELEMENT
     pNetworkContext->use_secure_element = true;
@@ -314,14 +325,13 @@ static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) 
 #endif
 #endif
 #ifdef CONFIG_MQTT_ALPN_PROTOCOL_NAME
-    if( CONFIG_MQTT_BROKER_PORT == 443 )
-    {
+    if (CONFIG_MQTT_BROKER_PORT == 443) {
         /* Pass the ALPN protocol name depending on the port being used.
          * Please see more details about the ALPN protocol for AWS IoT MQTT endpoint
          * in the link below.
          * https://aws.amazon.com/blogs/iot/mqtt-with-tls-client-authentication-on-port-443-why-it-is-useful-and-how-it-works/
          */
-        static const char * pcAlpnProtocols[] = { NULL, NULL };
+        static const char *pcAlpnProtocols[] = {NULL, NULL};
         pcAlpnProtocols[0] = CONFIG_MQTT_ALPN_PROTOCOL_NAME;
         pNetworkContext->pAlpnProtos = pcAlpnProtocols;
     } else {
@@ -500,7 +510,7 @@ static MQTTStatus_t prvHandleResubscribe() {
         /* The block time can be 0 as the command loop is not running at this point. */
         xCommandParams.blockTimeMs = 0U;
         xCommandParams.cmdCompleteCallback = prvSubscriptionCommandCallback;
-        xCommandParams.pCmdCompleteCallbackContext = (void *)(&xSubArgs);
+        xCommandParams.pCmdCompleteCallbackContext = (void *) (&xSubArgs);
 
         /* Enqueue subscribe to the command queue. These commands will be processed only
          * when command loop starts. */
@@ -565,9 +575,9 @@ static MQTTStatus_t prvMQTTConnect(bool xCleanSession) {
 #else /* ifdef USE_AWS_IOT_CORE_BROKER */
 #ifdef CONFIG_MQTT_CLIENT_USERNAME
     xConnectInfo.pUserName = CONFIG_MQTT_CLIENT_USERNAME;
-    xConnectInfo.userNameLength = ( uint16_t ) strlen( CONFIG_MQTT_CLIENT_USERNAME );
+    xConnectInfo.userNameLength = (uint16_t) strlen(CONFIG_MQTT_CLIENT_USERNAME);
     xConnectInfo.pPassword = CONFIG_MQTT_CLIENT_PASSWORD;
-    xConnectInfo.passwordLength = ( uint16_t ) strlen( CONFIG_MQTT_CLIENT_PASSWORD );
+    xConnectInfo.passwordLength = (uint16_t) strlen(CONFIG_MQTT_CLIENT_PASSWORD);
 #endif /* ifdef CONFIG_MQTT_CLIENT_USERNAME */
 #endif /* ifdef USE_AWS_IOT_CORE_BROKER */
 
