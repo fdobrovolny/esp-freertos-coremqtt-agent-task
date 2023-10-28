@@ -1,0 +1,4 @@
+version: "0.1.0"
+description: Ready-made task for usage with esp-idf of the FreeRTOS coreMQTT Agent library
+dependencies:
+  idf: ">=4.3"
