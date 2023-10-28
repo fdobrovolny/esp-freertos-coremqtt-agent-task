@@ -101,7 +101,7 @@ menu "CoreMQTT Agent Task"
         help
             The ALPN protocol name to use when connecting to the broker.
 
-    config CONFIG_MQTT_MAX_SUBSCRIPTIONS
+    config MQTT_MAX_SUBSCRIPTIONS
         int "Maximum number of subscriptions"
         default 10
         help
