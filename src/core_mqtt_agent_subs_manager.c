@@ -37,6 +37,10 @@
 /* Subscription manager header include. */
 #include "core_mqtt_agent_subs_manager.h"
 
+/**
+ * @brief Logging tag.
+ */
+static const char *TAG = "coreMQTTAgentSubsManager";
 
 bool addSubscription(SubscriptionElement_t *pxSubscriptionList,
                      const char *pcTopicFilterString,
@@ -47,16 +51,16 @@ bool addSubscription(SubscriptionElement_t *pxSubscriptionList,
     size_t xAvailableIndex = SUBSCRIPTION_MANAGER_MAX_SUBSCRIPTIONS;
     bool xReturnStatus = false;
 
-    if ((pxSubscriptionList == nullptr) ||
-        (pcTopicFilterString == nullptr) ||
+    if ((pxSubscriptionList == NULL) ||
+        (pcTopicFilterString == NULL) ||
         (usTopicFilterLength == 0U) ||
-        (pxIncomingPublishCallback == nullptr)) {
-        LogError(("Invalid parameter. pxSubscriptionList=%p, pcTopicFilterString=%p,"
-                  " usTopicFilterLength=%u, pxIncomingPublishCallback=%p.",
-                pxSubscriptionList,
-                pcTopicFilterString,
-                (unsigned int) usTopicFilterLength,
-                pxIncomingPublishCallback));
+        (pxIncomingPublishCallback == NULL)) {
+        ESP_LOGE(TAG, "Invalid parameter. pxSubscriptionList=%p, pcTopicFilterString=%p,"
+                      " usTopicFilterLength=%u, pxIncomingPublishCallback=%p.",
+                 pxSubscriptionList,
+                 pcTopicFilterString,
+                 (unsigned int) usTopicFilterLength,
+                 pxIncomingPublishCallback);
     } else {
         /* Start at end of array, so that we will insert at the first available index.
          * Scans backwards to find duplicates. */
@@ -96,14 +100,14 @@ void removeSubscription(SubscriptionElement_t *pxSubscriptionList,
                         uint16_t usTopicFilterLength) {
     uint32_t ulIndex = 0;
 
-    if ((pxSubscriptionList == nullptr) ||
-        (pcTopicFilterString == nullptr) ||
+    if ((pxSubscriptionList == NULL) ||
+        (pcTopicFilterString == NULL) ||
         (usTopicFilterLength == 0U)) {
-        LogError(("Invalid parameter. pxSubscriptionList=%p, pcTopicFilterString=%p,"
-                  " usTopicFilterLength=%u.",
-                pxSubscriptionList,
-                pcTopicFilterString,
-                (unsigned int) usTopicFilterLength));
+        ESP_LOGE(TAG, "Invalid parameter. pxSubscriptionList=%p, pcTopicFilterString=%p,"
+                      " usTopicFilterLength=%u.",
+                 pxSubscriptionList,
+                 pcTopicFilterString,
+                 (unsigned int) usTopicFilterLength);
     } else {
         for (ulIndex = 0U; ulIndex < SUBSCRIPTION_MANAGER_MAX_SUBSCRIPTIONS; ulIndex++) {
             if (pxSubscriptionList[ulIndex].usFilterStringLength == usTopicFilterLength) {
@@ -123,11 +127,11 @@ bool handleIncomingPublishes(SubscriptionElement_t *pxSubscriptionList,
     uint32_t ulIndex = 0;
     bool isMatched = false, publishHandled = false;
 
-    if ((pxSubscriptionList == nullptr) ||
-        (pxPublishInfo == nullptr)) {
-        LogError(("Invalid parameter. pxSubscriptionList=%p, pxPublishInfo=%p,",
-                pxSubscriptionList,
-                pxPublishInfo));
+    if ((pxSubscriptionList == NULL) ||
+        (pxPublishInfo == NULL)) {
+        ESP_LOGE(TAG, "Invalid parameter. pxSubscriptionList=%p, pxPublishInfo=%p.",
+                 pxSubscriptionList,
+                 pxPublishInfo);
     } else {
         for (ulIndex = 0U; ulIndex < SUBSCRIPTION_MANAGER_MAX_SUBSCRIPTIONS; ulIndex++) {
             if (pxSubscriptionList[ulIndex].usFilterStringLength > 0) {

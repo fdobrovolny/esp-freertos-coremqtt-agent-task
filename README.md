@@ -41,4 +41,4 @@ The connection to broker has to be encrypted. (The `coreMQTT` in `esp-aws-iot` d
 connections.)
 
 If you want to connect to the broker via IP the certificate of the broker has to have the IP as it's CN and with no alt
-names. (mbed-tls does not support `IP` alt names.)
+names. (mbed-tls does not support `IP` alt names. See [#7436](https://github.com/Mbed-TLS/mbedtls/pull/7436))

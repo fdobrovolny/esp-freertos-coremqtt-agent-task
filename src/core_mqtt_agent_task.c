@@ -95,7 +95,7 @@ static StaticSemaphore_t xTlsContextSemaphoreBuffer;
 /**
  * @brief The network context used for Openssl operation.
  */
-static NetworkContext_t networkContext = {nullptr};
+static NetworkContext_t networkContext = {0};
 
 MQTTAgentContext_t xGlobalMqttAgentContext;
 
@@ -117,7 +117,7 @@ SubscriptionElement_t xGlobalSubscriptionList[SUBSCRIPTION_MANAGER_MAX_SUBSCRIPT
 /**
  * @brief Logging tag.
  */
-static const char *TAG = "MQTT";
+static const char *TAG = "coreMQTTAgentTask";
 
 /*-----------------------------------------------------------*/
 
@@ -230,8 +230,8 @@ static uint32_t generateRandomNumber() {
 }
 
 uint32_t prvGetTimeMs() {
-    struct timeval tv{};
-    gettimeofday(&tv, nullptr);
+    struct timeval tv = {0};
+    gettimeofday(&tv, NULL);
     return (uint32_t) (tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }
 
@@ -273,7 +273,7 @@ static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) 
     BackoffAlgorithmContext_t reconnectParams;
     pNetworkContext->pcHostname = MQTT_BROKER_ENDPOINT;
     pNetworkContext->xPort = MQTT_BROKER_PORT;
-    pNetworkContext->pxTls = nullptr;
+    pNetworkContext->pxTls = NULL;
     pNetworkContext->xTlsContextSemaphore = xSemaphoreCreateMutexStatic(&xTlsContextSemaphoreBuffer);
 
     pNetworkContext->disableSni = 0;
@@ -325,10 +325,10 @@ static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) 
         pcAlpnProtocols[0] = CONFIG_MQTT_ALPN_PROTOCOL_NAME;
         pNetworkContext->pAlpnProtos = pcAlpnProtocols;
     } else {
-        pNetworkContext->pAlpnProtos = nullptr;
+        pNetworkContext->pAlpnProtos = NULL;
     }
 #else
-    pNetworkContext->pAlpnProtos = nullptr;
+    pNetworkContext->pAlpnProtos = NULL;
 #endif
 
     /* Seed pseudo random number generator used in the demo for
@@ -391,7 +391,7 @@ static MQTTStatus_t prvMQTTInit() {
     static StaticQueue_t staticQueueStructure;
     MQTTAgentMessageInterface_t messageInterface =
             {
-                    .pMsgCtx        = nullptr,
+                    .pMsgCtx        = NULL,
                     .send           = Agent_MessageSend,
                     .recv           = Agent_MessageReceive,
                     .getCommand     = Agent_GetCommand,
@@ -413,7 +413,7 @@ static MQTTStatus_t prvMQTTInit() {
     xTransport.pNetworkContext = &networkContext;
     xTransport.send = espTlsTransportSend;
     xTransport.recv = espTlsTransportRecv;
-    xTransport.writev = nullptr;
+    xTransport.writev = NULL;
 
     /* Initialize MQTT library. */
     xReturn = MQTTAgent_Init(&xGlobalMqttAgentContext,
@@ -470,7 +470,7 @@ static MQTTStatus_t prvHandleResubscribe() {
 
     /* These variables need to stay in scope until command completes. */
     static MQTTAgentSubscribeArgs_t xSubArgs = {0};
-    static MQTTSubscribeInfo_t xSubInfo[SUBSCRIPTION_MANAGER_MAX_SUBSCRIPTIONS] = {{static_cast<MQTTQoS_t>(0)}};
+    static MQTTSubscribeInfo_t xSubInfo[SUBSCRIPTION_MANAGER_MAX_SUBSCRIPTIONS] = {{0}};
     static MQTTAgentCommandInfo_t xCommandParams = {0};
 
     /* Loop through each subscription in the subscription list and add a subscribe
@@ -500,7 +500,7 @@ static MQTTStatus_t prvHandleResubscribe() {
         /* The block time can be 0 as the command loop is not running at this point. */
         xCommandParams.blockTimeMs = 0U;
         xCommandParams.cmdCompleteCallback = prvSubscriptionCommandCallback;
-        xCommandParams.pCmdCompleteCallbackContext = reinterpret_cast<MQTTAgentCommandContext_t *>(&xSubArgs);
+        xCommandParams.pCmdCompleteCallbackContext = (void *)(&xSubArgs);
 
         /* Enqueue subscribe to the command queue. These commands will be processed only
          * when command loop starts. */
@@ -575,7 +575,7 @@ static MQTTStatus_t prvMQTTConnect(bool xCleanSession) {
      * is not used in this demo, so it is passed as NULL. */
     xResult = MQTT_Connect(&(xGlobalMqttAgentContext.mqttContext),
                            &xConnectInfo,
-                           nullptr,
+                           NULL,
                            CONNACK_RECV_TIMEOUT_MS,
                            &xSessionPresent);
 
@@ -663,7 +663,7 @@ void connectToMQTTAndStartAgent(void *pvParameters) {
     /* This task has nothing left to do, so rather than create the MQTT
     * agent as a separate thread, it simply calls the function that implements
     * the agent - in effect turning itself into the agent. */
-    prvMQTTAgentTask(nullptr);
+    prvMQTTAgentTask(NULL);
 
     /* Should not get here.  Force an assert if the task returns from
      * prvMQTTAgentTask(). */
