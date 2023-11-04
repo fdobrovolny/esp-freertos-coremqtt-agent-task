@@ -86,7 +86,7 @@
 #include "mbedtls/certs.h"
 #endif
 
-#if !defined(CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA) && !defined(MBEDTLS_PEM_PARSE_C)
+#if !defined(CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA) && defined(MBEDTLS_PEM_PARSE_C)
 extern const char root_cert_auth_start[]   asm("_binary_root_cert_auth_crt_start");
 extern const char root_cert_auth_end[]   asm("_binary_root_cert_auth_crt_end");
 #endif
@@ -287,10 +287,15 @@ static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) 
     struct timespec tp;
 
     /* Initialize credentials for establishing TLS session. */
-#if !defined(CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA) && !defined(MBEDTLS_PEM_PARSE_C)
+#if !defined(CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA) && defined(MBEDTLS_PEM_PARSE_C)
+    ESP_LOGI(TAG, "Using custom root CA.");
     pNetworkContext->pcServerRootCA = root_cert_auth_start;
     pNetworkContext->pcServerRootCASize = root_cert_auth_end - root_cert_auth_start;
 #else
+#if !defined(CONFIG_MQTT_USE_MBDED_TLS_ROOT_CA) && !defined(MBEDTLS_PEM_PARSE_C)
+    ESP_LOGE(TAG, "Fallback from using custom root CA as MBEDTLS_PEM_PARSE_C is disabled.")
+#endif
+    ESP_LOGI(TAG, "Using mbedtls root CA.");
     pNetworkContext->pcServerRootCA = mbedtls_test_cas_pem;
     pNetworkContext->pcServerRootCASize = mbedtls_test_cas_pem_len;
 #endif
