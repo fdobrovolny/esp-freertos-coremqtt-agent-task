@@ -42,3 +42,44 @@ connections.)
 
 If you want to connect to the broker via IP the certificate of the broker has to have the IP as it's CN and with no alt
 names. (mbed-tls does not support `IP` alt names. See [#7436](https://github.com/Mbed-TLS/mbedtls/pull/7436))
+
+## Using Certificate authentication
+
+1. Add your certificates with name `client.crt` and `client.key` to the `main/certs` or (`src/certs` for platformio) folder.
+2. Register the certificates by adding into your main CMakeLists.txt (not project)
+    ```cmake
+    target_add_binary_data(${COMPONENT_TARGET} "certs/client.crt" TEXT)
+    target_add_binary_data(${COMPONENT_TARGET} "certs/client.key" TEXT)
+    ```
+   This has to be after the following line:
+    ```cmake
+    idf_component_register(...)
+    ```
+   If you use platformio you need to add also following to your `platformio.ini`:
+    ```ini
+    board_build.embed_txtfiles =
+        src/certs/client.crt
+        src/certs/client.key
+    ```
+3. Enable the `idf.py menuconfig` option `Component config / CoreMQTT Agent Task / Choose authentication method` to
+   `Client certificate`
+
+## Root CA certificate
+
+The root CA certificate is used to verify the broker certificate. If you use a public broker you can use set in the
+`idf.py menuconfig` option `Component config / CoreMQTT Agent Task / Use mbedTLS root CA`. You also need to configure
+mbedTLS to bundle the root CA certificates. This can be done by setting the option `Component config / mbedTLS / Certificate Bundle`.
+
+If you want to use your own root CA see the section [How to use](#how-to-use) for instructions how to add the root CA.
+
+## Using AWS IoT
+
+This tutorial describes the most common config.
+
+1. Use custom root [Starfield Root CA Certificate](https://www.amazontrust.com/repository/SFSRootCAG2.pem) as `root_cert_auth.crt`
+2. Set `Component config / CoreMQTT Agent Task / Choose authentication method` to `Client certificate`
+   and add your certificates as described in [Using Certificate authentication](#using-certificate-authentication)
+3. Set `Component config / CoreMQTT Agent Task / Endpoint of the MQTT broker to connect to` to endpoint of your AWS IoT Core.
+   (You can find it in the AWS IoT Core console under `Settings / Device data endpoint`)
+4. You can also enable `Component config / CoreMQTT Agent Task / Use AWS IoT Core broker` which will report additional
+   metrics to AWS IoT Core.
