@@ -10,6 +10,9 @@ It is mainly a compilation of the following repositories:
 * [coreMQTT-AgentDemos](https://github.com/FreeRTOS/coreMQTT-Agent-Demos/blob/0a5b37ad5c79bc8d2a38baf3df9ccc5d7f3ac329/): MIT license
   * [coreMQTT-AgentDemos-license](coreMQTT-AgentDemos-license) - Repository license   
   * [mqtt-coreMQTT-Agent-license](mqtt-coreMQTT-Agent-license)
-    License specified in the files that were used in mqtt.cpp/.h
+    License specified in the files that were used in mqtt.cpp/.h and sub_pub_test.c/.h
   * [subscription-manager-license](subscription-manager-license)
     License specified in the files that were used in subscription_manager.cpp/.h
+  * [examples license](examples-license.md) 
+    specified in the files that were used in the examples directory
+    

@@ -1,9 +1,15 @@
-//
-// Created by fdobrovo on 28.10.23.
-//
+/*
+ * https://github.com/FreeRTOS/coreMQTT-Agent-Demos/blob/0a5b37ad5c79bc8d2a38baf3df9ccc5d7f3ac329/source/demo-tasks/simple_sub_pub_demo.c
+ *
+ * Based on Lab-Project-coreMQTT-Agent 201215
+ */
+
+#include "stdint.h"
+#include "freertos/task.h"
 
 #ifndef SUB_PUB_TEST_H
 #define SUB_PUB_TEST_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
