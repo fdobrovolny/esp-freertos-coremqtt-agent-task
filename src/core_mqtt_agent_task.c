@@ -55,6 +55,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "freertos/event_groups.h"
 
 /* MQTT library includes. */
 #include "core_mqtt.h"
@@ -108,6 +109,8 @@ MQTTAgentContext_t xGlobalMqttAgentContext;
 static uint8_t xNetworkBuffer[MQTT_AGENT_NETWORK_BUFFER_SIZE];
 
 static MQTTAgentMessageContext_t xCommandQueue;
+
+static StaticEventGroup_t prvMQTTAgentEventGroup;
 
 /**
  * @brief The global array of subscription elements.
@@ -406,6 +409,7 @@ static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) 
     /* Seed pseudo random number generator with nanoseconds. */
     srand(tp.tv_nsec);
 
+
     /* Attempt to connect to MQTT broker. If connection fails, retry after
      * a timeout. Timeout value will exponentially increase until maximum
      * attempts are reached.
@@ -624,6 +628,10 @@ static MQTTStatus_t prvMQTTConnect(bool xCleanSession) {
         }
     }
 
+    if (xResult == MQTTSuccess) {
+        xEventGroupSetBits(xMQTTAgentEventGroupHandle, MQTT_AGENT_CONNECTED_FLAG);
+    }
+
     return xResult;
 }
 
@@ -672,12 +680,14 @@ static void prvMQTTAgentTask(void *pvParameters) {
         if (xMQTTStatus == MQTTSuccess) {
             /* MQTT Disconnect. Disconnect the socket. */
             xTlsDisconnect(&networkContext);
+            xEventGroupClearBits(xMQTTAgentEventGroupHandle, MQTT_AGENT_CONNECTED_FLAG);
         }
             /* Error. */
         else {
             /* Reconnect TCP. */
             xNetworkResult = xTlsDisconnect(&networkContext);
             configASSERT(xNetworkResult == TLS_TRANSPORT_SUCCESS);
+            xEventGroupClearBits(xMQTTAgentEventGroupHandle, MQTT_AGENT_CONNECTED_FLAG);
 
             xNetworkResult = prvTlsConnectToServerWithBackoffRetries(&networkContext);
             configASSERT(xNetworkResult == EXIT_SUCCESS);
@@ -691,6 +701,7 @@ static void prvMQTTAgentTask(void *pvParameters) {
 }
 
 void connectToMQTTAndStartAgent(void *pvParameters) {
+    configASSERT(xMQTTAgentEventGroupHandle);
     /* Create the TCP connection to the broker, then the MQTT connection to the
      * same. */
     prvConnectToMQTTBroker();
@@ -703,4 +714,14 @@ void connectToMQTTAndStartAgent(void *pvParameters) {
     /* Should not get here.  Force an assert if the task returns from
      * prvMQTTAgentTask(). */
     configASSERT(pdTRUE);
+}
+
+void initMQTTAgent() {
+    ESP_LOGD(TAG, "Initializing MQTT agent.");
+    xMQTTAgentEventGroupHandle =  xEventGroupCreateStatic(&prvMQTTAgentEventGroup);
+}
+
+void waitForMQTTAgentConnection() {
+    configASSERT(xMQTTAgentEventGroupHandle);
+    xEventGroupWaitBits(xMQTTAgentEventGroupHandle, MQTT_AGENT_CONNECTED_FLAG, false, true, portMAX_DELAY);
 }

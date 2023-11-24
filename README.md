@@ -28,7 +28,18 @@ Ready-made task for usage with esp-idf of the FreeRTOS coreMQTT Agent library
     ```c
     #include "esp_freertos_coremqtt_agent_task.h"   
 
+    initMQTTAgent();
     xTaskCreate(&connectToMQTTAndStartAgent, "MQTT Agent", 10240, nullptr, 5, nullptr);
+    ```
+
+7. Before using the MQTT agent you should wait for MQTT connection by calling:
+    ```c
+    waitForMQTTAgentConnection();
+    ```
+   This will wait until the MQTT connection is established.
+   Alternatively you can set the wait yourself by calling:
+    ```c
+    xEventGroupWaitBits(xMQTTAgentEventGroupHandle, MQTT_AGENT_CONNECTED_FLAG, false, true, portMAX_DELAY);
     ```
 
 ## Configuration

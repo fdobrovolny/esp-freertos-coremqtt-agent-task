@@ -264,12 +264,38 @@ extern const char client_key_end[] asm("_binary_client_key_end");
 
 /* ------------------------------------- */
 
+#include "freertos/event_groups.h"
+
+static EventGroupHandle_t xMQTTAgentEventGroupHandle;
+
+/*
+ * @brief xMQTTAgentEventGroup flags.
+ */
+#define MQTT_AGENT_CONNECTED_FLAG  ( 1 << 0 )
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*
+ * @brief Connect to MQTT broker and start MQTT agent.
+ * */
 void connectToMQTTAndStartAgent(void *pvParameters);
-    
+
+/*
+ * @brief Blocking wait for MQTT connection to be established.
+ * */
+void waitForMQTTAgentConnection();
+
+/*
+ * @brief Initialize MQTT agent.
+ *
+ * Currently used to initialize Event Group for MQTT connection.
+ */
+void initMQTTAgent();
+
+
 #ifdef __cplusplus
 }
 #endif
