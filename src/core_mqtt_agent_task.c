@@ -150,6 +150,13 @@ static void prvIncomingPublishCallback(MQTTAgentContext_t *pMqttAgentContext,
 
 /**
  * @brief Connect to MQTT broker with reconnection retries.
+ * @param pNetworkContext
+ * @return
+ */
+static int prvTlsConnectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext);
+
+/**
+ * @brief Connect to MQTT broker with reconnection retries.
  *
  * If connection fails, retry is attempted after a timeout.
  * Timeout value will exponentially increase until maximum
@@ -269,21 +276,65 @@ static void prvIncomingPublishCallback(MQTTAgentContext_t *pMqttAgentContext,
     }
 }
 
+static int prvTlsConnectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) {
+    int returnStatus = EXIT_SUCCESS;
+
+    BackoffAlgorithmContext_t reconnectParams;
+    BackoffAlgorithmStatus_t backoffAlgStatus = BackoffAlgorithmSuccess;
+    TlsTransportStatus_t tlsStatus = TLS_TRANSPORT_SUCCESS;
+    uint16_t nextRetryBackOff;
+
+
+    /* Initialize reconnect attempts and interval */
+    BackoffAlgorithm_InitializeParams(&reconnectParams,
+                                      CONNECTION_RETRY_BACKOFF_BASE_MS,
+                                      CONNECTION_RETRY_MAX_BACKOFF_DELAY_MS,
+                                      CONNECTION_RETRY_MAX_ATTEMPTS);
+
+    /* Attempt to connect to MQTT broker. If connection fails, retry after
+     * a timeout. Timeout value will exponentially increase until maximum
+     * attempts are reached.
+     */
+    do {
+        /* Establish a TLS session with the MQTT broker. This example connects
+         * to the MQTT broker as specified in AWS_IOT_ENDPOINT and AWS_MQTT_PORT
+         * at the demo config header. */
+        ESP_LOGI(TAG, "Establishing a TLS session to %.*s:%d.",
+                 MQTT_BROKER_ENDPOINT_LENGTH,
+                 MQTT_BROKER_ENDPOINT,
+                 MQTT_BROKER_PORT);
+        tlsStatus = xTlsConnect(pNetworkContext);
+
+        if (tlsStatus != TLS_TRANSPORT_SUCCESS) {
+            /* Generate a random number and get back-off value (in milliseconds) for the next connection retry. */
+            backoffAlgStatus = BackoffAlgorithm_GetNextBackoff(&reconnectParams, generateRandomNumber(),
+                                                               &nextRetryBackOff);
+
+            if (backoffAlgStatus == BackoffAlgorithmRetriesExhausted) {
+                ESP_LOGE(TAG, "Connection to the broker failed, all attempts exhausted.");
+                returnStatus = EXIT_FAILURE;
+            } else if (backoffAlgStatus == BackoffAlgorithmSuccess) {
+                ESP_LOGW(TAG, "Connection to the broker failed. Retrying connection "
+                              "after %hu ms backoff.",
+                         (unsigned short) nextRetryBackOff);
+                vTaskDelay(pdMS_TO_TICKS(nextRetryBackOff));
+            }
+        }
+    } while ((tlsStatus != TLS_TRANSPORT_SUCCESS) && (backoffAlgStatus == BackoffAlgorithmSuccess));
+
+    return returnStatus;
+}
+
 static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) {
     /* Based on
      * https://github.com/espressif/esp-aws-iot/blob/d37fd63002b4fda99523e1ac4c9822fce485e76d/examples/thing_shadow/main/shadow_demo_helpers.c#L371-L485
      */
-    int returnStatus = EXIT_SUCCESS;
-    BackoffAlgorithmStatus_t backoffAlgStatus = BackoffAlgorithmSuccess;
-    TlsTransportStatus_t tlsStatus = TLS_TRANSPORT_SUCCESS;
-    BackoffAlgorithmContext_t reconnectParams;
     pNetworkContext->pcHostname = MQTT_BROKER_ENDPOINT;
     pNetworkContext->xPort = MQTT_BROKER_PORT;
     pNetworkContext->pxTls = NULL;
     pNetworkContext->xTlsContextSemaphore = xSemaphoreCreateMutexStatic(&xTlsContextSemaphoreBuffer);
 
     pNetworkContext->disableSni = 0;
-    uint16_t nextRetryBackOff;
     struct timespec tp;
 
     /* Initialize credentials for establishing TLS session. */
@@ -355,44 +406,11 @@ static int connectToServerWithBackoffRetries(NetworkContext_t *pNetworkContext) 
     /* Seed pseudo random number generator with nanoseconds. */
     srand(tp.tv_nsec);
 
-    /* Initialize reconnect attempts and interval */
-    BackoffAlgorithm_InitializeParams(&reconnectParams,
-                                      CONNECTION_RETRY_BACKOFF_BASE_MS,
-                                      CONNECTION_RETRY_MAX_BACKOFF_DELAY_MS,
-                                      CONNECTION_RETRY_MAX_ATTEMPTS);
-
     /* Attempt to connect to MQTT broker. If connection fails, retry after
      * a timeout. Timeout value will exponentially increase until maximum
      * attempts are reached.
      */
-    do {
-        /* Establish a TLS session with the MQTT broker. This example connects
-         * to the MQTT broker as specified in AWS_IOT_ENDPOINT and AWS_MQTT_PORT
-         * at the demo config header. */
-        ESP_LOGI(TAG, "Establishing a TLS session to %.*s:%d.",
-                 MQTT_BROKER_ENDPOINT_LENGTH,
-                 MQTT_BROKER_ENDPOINT,
-                 MQTT_BROKER_PORT);
-        tlsStatus = xTlsConnect(pNetworkContext);
-
-        if (tlsStatus != TLS_TRANSPORT_SUCCESS) {
-            /* Generate a random number and get back-off value (in milliseconds) for the next connection retry. */
-            backoffAlgStatus = BackoffAlgorithm_GetNextBackoff(&reconnectParams, generateRandomNumber(),
-                                                               &nextRetryBackOff);
-
-            if (backoffAlgStatus == BackoffAlgorithmRetriesExhausted) {
-                ESP_LOGE(TAG, "Connection to the broker failed, all attempts exhausted.");
-                returnStatus = EXIT_FAILURE;
-            } else if (backoffAlgStatus == BackoffAlgorithmSuccess) {
-                ESP_LOGW(TAG, "Connection to the broker failed. Retrying connection "
-                              "after %hu ms backoff.",
-                         (unsigned short) nextRetryBackOff);
-                vTaskDelay(pdMS_TO_TICKS(nextRetryBackOff));
-            }
-        }
-    } while ((tlsStatus != TLS_TRANSPORT_SUCCESS) && (backoffAlgStatus == BackoffAlgorithmSuccess));
-
-    return returnStatus;
+    return prvTlsConnectToServerWithBackoffRetries(pNetworkContext);
 }
 
 static MQTTStatus_t prvMQTTInit() {
@@ -660,8 +678,10 @@ static void prvMQTTAgentTask(void *pvParameters) {
             /* Reconnect TCP. */
             xNetworkResult = xTlsDisconnect(&networkContext);
             configASSERT(xNetworkResult == TLS_TRANSPORT_SUCCESS);
-            xNetworkResult = xTlsConnect(&networkContext);
-            configASSERT(xNetworkResult == TLS_TRANSPORT_SUCCESS);
+
+            xNetworkResult = prvTlsConnectToServerWithBackoffRetries(&networkContext);
+            configASSERT(xNetworkResult == EXIT_SUCCESS);
+
             pMqttContext->connectStatus = MQTTNotConnected;
             /* MQTT Connect with a persistent session. */
             xConnectStatus = prvMQTTConnect(false);
