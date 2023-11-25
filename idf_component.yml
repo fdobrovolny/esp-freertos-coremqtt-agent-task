@@ -1,4 +1,13 @@
-version: "0.1.0"
+version: "0.1.1-alpha.2"
 description: Ready-made task for usage with esp-idf of the FreeRTOS coreMQTT Agent library
+license: MIT
+maintainer: Filip Dobrovolny <dobrovolny.filip@gmail.com>
+url: https://github.com/fdobrovolny/esp-freertos-coremqtt-agent-task
+repository: https://github.com/fdobrovolny/esp-freertos-coremqtt-agent-task
 dependencies:
-  idf: ">=4.3"
+  idf:
+    version: ">=4.3"
+    require: public
+  fdobrovolny/esp-freertos-coremqtt-agent:
+      version: ">=0.0.1-alpha.1"
+      require: public
