@@ -8,6 +8,3 @@ dependencies:
   idf:
     version: ">=4.3"
     require: public
-  fdobrovolny/esp-freertos-coremqtt-agent:
-      version: ">=0.0.1-alpha.1"
-      require: public
